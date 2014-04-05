@@ -124,7 +124,7 @@ int main(int argc, char **argv)
     size_t size = fread(vbios, sizeof(unsigned char), length, vbios_fp);
     fclose(vbios_fp);
     if (size != length) {
-        printf("%s: incomplete read occred during fread()\n", name);
+        printf("%s: incomplete read occurred during fread()\n", name);
         return 1;
     }
 
