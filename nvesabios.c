@@ -91,8 +91,11 @@ int main(int argc, char **argv)
                 break;
         }
     }
-    filename = argv[optind];
-    if (!filename) {
+
+    if (optind < argc) {
+        filename = argv[optind];
+    }
+    else {
         show_usage(name);
         exit(1);
     }
