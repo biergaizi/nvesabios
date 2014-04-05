@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <getopt.h>
 
 
 /* This is always the first entry of the VESA table in NVIDIA's ROM */
@@ -56,42 +57,54 @@ bool meet_vesa_table(unsigned char *vbios)
 }
 
 
-int main(int argc, const char **argv)
+void show_usage(char *name)
 {
+    printf("Usage: %s [OPTION] [NVIDIA VBIOS]\n", name);
+    printf("   -h, --help\tThis help message\n");
+    printf("   -v, --verbose\tShow verbose VESA modelines\n");
+}
+
+
+int main(int argc, char **argv)
+{
+    static struct option longopts[] = {
+        {"help", no_argument, 0, 'h'},
+        {"verbose", no_argument, 0, 'v'}
+    };
+
+    char *name = argv[0];
     bool verbose = false;
-    if (argc == 1 || strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 ) {
-        printf("Usage: %s [OPTION] [NVIDIA VBIOS]\n", argv[0]);
-        printf("   -v, --verbose\tShow verbose VESA modelines\n");
-        return 0;
-    }
-    else if (argc == 3 && (strcmp(argv[1], "-v") == 0 || strcmp(argv[1], "--verbose") == 0)) {
-        const char *tmp = argv[1];
-        argv[1] = argv[2];
-        argv[2] = tmp;
-        verbose = true;
-    }
-    else if (argc == 3 && (strcmp(argv[2], "-v") == 0 || strcmp(argv[2], "--verbose") == 0)) {
-        verbose = true;
-    }
-    else if (argc == 2) {}
-    else {
-        printf("%s: invalid option -- ", argv[0]);
-        for (int i = 1; i < argc; i++) {
-            printf("%s ", argv[i]);
+    char *filename = NULL;
+
+    int opt;
+    while ((opt = getopt_long(argc, argv, "vh", longopts, NULL)) != -1) {
+        switch (opt) {
+            case 'v':
+                verbose = true;
+                break;
+            case 'h':
+                show_usage(name);
+                exit(0);
+            case '?':
+                printf("%s: invalid option -- %c\n", name, optopt);
+                printf("See %s -h for usage.\n", name);
+                break;
         }
-        putchar('\n');
-        printf("See %s -h for usage.\n", argv[0]);
-        return 1;
+    }
+    filename = argv[optind];
+    if (!filename) {
+        show_usage(name);
+        exit(1);
     }
 
     puts("Warning: This is free software; see the source for copying conditions.");
     puts("There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 
-    printf("Opening VBIOS: %s\n", argv[1]);
+    printf("Opening VBIOS: %s\n", filename);
 
-    FILE *vbios_fp = fopen(argv[1], "rb");
+    FILE *vbios_fp = fopen(filename, "rb");
     if (!vbios_fp) {
-        printf("%s: can't open %s\n", argv[0], argv[1]);
+        printf("%s: can't open %s\n", name, filename);
         return 1;
     }
 
@@ -102,13 +115,13 @@ int main(int argc, const char **argv)
 
     unsigned char *vbios = malloc(sizeof(unsigned char) * length);
     if (!vbios) {
-        printf("%s: out of memory!\n", argv[0]);
+        printf("%s: out of memory!\n", name);
         return 1;
     }
     size_t size = fread(vbios, sizeof(unsigned char), length, vbios_fp);
     fclose(vbios_fp);
     if (size != length) {
-        printf("%s: incomplete read occred during fread()\n", argv[0]);
+        printf("%s: incomplete read occred during fread()\n", name);
         return 1;
     }
 
